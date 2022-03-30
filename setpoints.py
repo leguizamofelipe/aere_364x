@@ -17,6 +17,6 @@ def get_desired_angle(rotation_command):
     Either a 1.0 or a 2.0 ms pulse would map to +/- 180 deg (S)
     '''
     signal = get_rotation_signal(rotation_command)
-    # target_angle = (signal - 1500)/+1500
+    target_angle = -540 + 360 * signal/1000
 
-    return 1
+    return target_angle

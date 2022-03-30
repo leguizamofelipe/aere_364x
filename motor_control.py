@@ -6,13 +6,15 @@ class PIDController():
         self.ki = ki
         self.kd = kd
         self.setpoint = setpoint
-        self.measurement = measurement
         self.integrated_error = 0
         self.prev_error = 0
         self.first_loop = True
 
     def set_setpoint(self, setpoint):
         self.setpoint = setpoint
+        self.integrated_error = 0
+        self.prev_error = 0
+        self.first_loop = True
     
     def timestep(self, measurement, dt):
         error = measurement - self.setpoint

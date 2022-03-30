@@ -12,6 +12,7 @@ from motor_control import *
 from setpoints import *
 
 from time import sleep
+import time
 
 # Configuration of the simulator (will have to remove these lines
 # when running on real hardware) 
@@ -45,12 +46,9 @@ dynamic_model.enable_wind=False   # Set this to True to add a moment from the wi
 
 rotation_command = pulseio.PulseIn(board.D5, maxlen=10, idle_state=False)
 forward_command = pulseio.PulseIn(board.D6)
-'''
 
-left_fan = pwmio.PWMOut(board.D9)
-right_fan = pwmio.PWMOut(board.D10)
-'''
 right_fan = pwmio.PWMOut(board.D10, frequency=40, duty_cycle=3932.1)
+left_fan = pwmio.PWMOut(board.D9, frequency=40, duty_cycle=3932.1)
 
 led_out = pwmio.PWMOut(board.D13, frequency=5000, duty_cycle=65000)
 
@@ -63,24 +61,48 @@ sensor = adafruit_bno055.BNO055_I2C(i2c)
 # of the previous iteration from the loop so you can accumulate the
 # right amount
 
-kp = 0.5
-ki = 0.5
-kd = 0.5
+kp = 0.00005
+ki = 0
+kd = 0
 
-# direction_PID = PIDController(0, )
+first_loop = True
 
 # Start an infinite loop here:
 while True:
+    start_time = time.time()
+
     angle_setpoint = get_desired_angle(rotation_command)
-    sleep(0.5)
+    angle_measurement = sensor.euler[0]
 
-    set_motor_speed(right_fan, 0.01)
+    if first_loop:
+        prev_angle = angle_setpoint
+        direction_PID = PIDController(angle_setpoint, angle_measurement, kp, ki, kd)
+        first_loop = False
 
-    print(get_rotation_signal(rotation_command))
+    if prev_angle != angle_setpoint:
+        direction_PID.set_setpoint(angle_setpoint)
 
-    print(f'[BNO055 CALIBRATION STATUS] - {sensor.calibrated}')
+    sleep(0.12)
+    prev_angle = angle_setpoint
+    end_time = time.time()
+
+    dt = end_time-start_time
+    pid_signal = direction_PID.timestep(angle_measurement, dt = dt)
+
+    des_motor_spd = min(0.01, pid_signal)
+
+    print(f'[PID SIGNAL]         -     {pid_signal}')
+    print(f'[ANGLE SETPOINT]     -     {angle_setpoint}')
+    print(f'[ANGLE ACTUAL]       -     {angle_measurement}')
+
+    set_motor_speed(right_fan, pid_signal)
+    set_motor_speed(left_fan, -pid_signal)
+
+    # print(get_rotation_signal(rotation_command))
+
+    # print(f'[BNO055 CALIBRATION STATUS] - {sensor.calibrated}')
     # print(f'[ROTATION SIGNAL] - {rotation_signal}')
-    print(f'[GYRO] - {sensor.gyro}')
+    # print(f'[GYRO] - {sensor.euler}')
 
     # Check whether the BNO055 is calibrated
     # and turn on the LED on D13 as appopriate
