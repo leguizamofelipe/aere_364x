@@ -61,9 +61,9 @@ sensor = adafruit_bno055.BNO055_I2C(i2c)
 # of the previous iteration from the loop so you can accumulate the
 # right amount
 
-kp = 0.00005
+kp = 0.0001
 ki = 0
-kd = 0
+kd = 0.001
 
 first_loop = True
 

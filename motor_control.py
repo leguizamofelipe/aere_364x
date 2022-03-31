@@ -25,6 +25,7 @@ class PIDController():
             delta_error = error - self.prev_error
 
         self.prev_error = error
+        self.first_loop=False
 
         return self.kp * error + self.ki * self.integrated_error + self.kd * delta_error
 
