@@ -1,10 +1,7 @@
 # Put the various CircuitPython import statements here
 import board
 import busio
-
 import adafruit_bno055
-import adafruit_pca9685
-import measure_servofreq_adafruit_pca9685
 import pwmio
 import pulseio
 
@@ -17,10 +14,10 @@ from setpoints import *
 from time import sleep
 import time
 
-'''
+# Configuration of the simulator (will have to remove these lines
+# when running on real hardware) 
 import dynamic_model
 dynamic_model.enable_wind=False   # Set this to True to add a moment from the wind
-'''
 
 # ***NOTE*** Do not get the various files which are part of the simulator
 # (adafruit_bno055.py, busio.py, board.py, etc.) confused with similarly
@@ -43,8 +40,6 @@ dynamic_model.enable_wind=False   # Set this to True to add a moment from the wi
 #    D10: PWM pulse out to right-side fan
 #        Running this fan forwards helps turn left
 #        Running backwards helps turn right
-#    D11: Lift command for bottom motor
-#    D12: Lift command for top motor
 #    D13: LED output. Use to indicate calibrationstate of BNO055
 #
 # You may also want variables for other values such as your chosen PWM frequency,
@@ -55,34 +50,10 @@ forward_command = pulseio.PulseIn(board.D6)
 right_fan = pwmio.PWMOut(board.D10, frequency=40, duty_cycle=3932.1)
 left_fan = pwmio.PWMOut(board.D9, frequency=40, duty_cycle=3932.1)
 
-l_bottom = pwmio.PWMOut(board.D11, frequency=40, duty_cycle = 0)
-l_top = pwmio.PWMOut(board.D12, frequency=40, duty_cycle = 0)
-
 led_out = pwmio.PWMOut(board.D13, frequency=5000, duty_cycle=65000)
 
 i2c = busio.I2C(board.SCL, board.SDA)
 sensor = adafruit_bno055.BNO055_I2C(i2c)
-
-print('Initializing')
-sleep(5)
-l_bottom.duty_cycle = 3932.1
-l_top.duty_cycle = 3932.1
-
-# SERVO BREAKOUT
-
-servo_breakout = adafruit_pca9685.PCA9685(i2c)
-servo_breakout.frequency = int(40) # This is the commanded frequency, but it is no# Perform measurement:
-servo_breakout.channels[15].duty_cycle=int(1.5e-3*servo_breakout.frequency*65536.0)
-
-
-# Then let’s suppose you are commanding channel #0 (LEFT OUT):
-LEFT_OUT = servo_breakout.channels[0]
-desired_left_pulsewidth_seconds = 1.5e-3
-
-#PWMfreq = measure_servofreq_adafruit_pca9685.measure_servofreq(servo_breakout,15,board.
-# Assign the duty cycle using the measured PWM frequency to get an
-# accurate pulse width
-#LEFT_OUT.duty_cycle = int(desired_left_pulsewidth_seconds * 65536 * )
 
 # When adding integration capability
 # You will need a variable to accumulate the integral term, etc. 
@@ -99,42 +70,40 @@ first_loop = True
 # Start an infinite loop here:
 while True:
     start_time = time.time()
-    
-    #angle_setpoint = get_desired_angle(rotation_command)
-    #angle_measurement = sensor.euler[0]
 
-    #if first_loop:
-        #prev_angle = angle_setpoint
-        #direction_PID = PIDController(angle_setpoint, angle_measurement, kp, ki, kd)
-        #first_loop = False
+    angle_setpoint = get_desired_angle(rotation_command)
+    angle_measurement = sensor.euler[0]
 
-    #if prev_angle != angle_setpoint:
-        #direction_PID.set_setpoint(angle_setpoint)
+    if first_loop:
+        prev_angle = angle_setpoint
+        direction_PID = PIDController(angle_setpoint, angle_measurement, kp, ki, kd)
+        first_loop = False
 
-    #sleep(0.12)
-    #prev_angle = angle_setpoint
-    #end_time = time.time()
+    if prev_angle != angle_setpoint:
+        direction_PID.set_setpoint(angle_setpoint)
 
-    #dt = end_time-start_time
-    #pid_signal = direction_PID.timestep(angle_measurement, dt = dt)
+    sleep(0.12)
+    prev_angle = angle_setpoint
+    end_time = time.time()
 
-    #des_motor_spd = min(0.01, pid_signal)
+    dt = end_time-start_time
+    pid_signal = direction_PID.timestep(angle_measurement, dt = dt)
 
-    #print(f'[PID SIGNAL]         -     {pid_signal}')
-    #print(f'[ANGLE SETPOINT]     -     {angle_setpoint}')
-    #print(f'[ANGLE ACTUAL]       -     {angle_measurement}')
+    des_motor_spd = min(0.01, pid_signal)
 
-    #set_motor_speed(right_fan, pid_signal)
-    #set_motor_speed(left_fan, -pid_signal)
+    print(f'[PID SIGNAL]         -     {pid_signal}')
+    print(f'[ANGLE SETPOINT]     -     {angle_setpoint}')
+    print(f'[ANGLE ACTUAL]       -     {angle_measurement}')
+
+    set_motor_speed(right_fan, pid_signal)
+    set_motor_speed(left_fan, -pid_signal)
 
     # print(get_rotation_signal(rotation_command))
 
     # print(f'[BNO055 CALIBRATION STATUS] - {sensor.calibrated}')
     # print(f'[ROTATION SIGNAL] - {rotation_signal}')
-    #print(f'[GYRO] - {sensor.euler}')
-    
-    print(l_bottom.duty_cycle)
-    print(l_top.duty_cycle)
+    # print(f'[GYRO] - {sensor.euler}')
+
     # Check whether the BNO055 is calibrated
     # and turn on the LED on D13 as appopriate
 
