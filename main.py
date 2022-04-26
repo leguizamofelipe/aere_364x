@@ -49,36 +49,94 @@ dynamic_model.enable_wind=False   # Set this to True to add a moment from the wi
 #
 # You may also want variables for other values such as your chosen PWM frequency,
 
+i2c = busio.I2C(board.SCL, board.SDA)
+
+import adafruit_pca9685
+import measure_servofreq_adafruit_pca9685
+
+servo_breakout = adafruit_pca9685.PCA9685(i2c)
+servo_breakout.frequency = int(40) # This is the commanded frequency, but it is no
+#Perform measurement:
+servo_breakout.channels[15].duty_cycle=int(1.5e-3*servo_breakout.frequency*65536.0)
+PWMfreq = measure_servofreq_adafruit_pca9685.measure_servofreq(servo_breakout,15,board.D26)# Then let’s suppose you are commanding channel #0 (LEFT OUT):
+
+right_fan = servo_breakout.channels[10]
+left_fan = servo_breakout.channels[9]
+
+bottom = servo_breakout.channels[11]
+
+
+#desired_left_pulsewidth_seconds = 1.5e-3
+# Assign the duty cycle using the measured PWM frequency to get an
+# accurate pulse width
+#right_fan.duty_cycle = int(desired_left_pulsewidth_seconds * 65536*PWMfreq)
+
+'''
 rotation_command = pulseio.PulseIn(board.D5, maxlen=10, idle_state=False)
 forward_command = pulseio.PulseIn(board.D6)
 
-right_fan = pwmio.PWMOut(board.D10, frequency=40, duty_cycle=3932.1)
-left_fan = pwmio.PWMOut(board.D9, frequency=40, duty_cycle=3932.1)
+#right_fan = pwmio.PWMOut(board.D10, frequency=40, duty_cycle=2621)
+left_fan = pwmio.PWMOut(board.D9, frequency=40, duty_cycle=2621)
 
-l_bottom = pwmio.PWMOut(board.D11, frequency=40, duty_cycle = 0)
-l_top = pwmio.PWMOut(board.D12, frequency=40, duty_cycle = 0)
+l_bottom = pwmio.PWMOut(board.D11, frequency=40, duty_cycle = 2621)
+l_top = pwmio.PWMOut(board.D12, frequency=40, duty_cycle = 2621)
 
 led_out = pwmio.PWMOut(board.D13, frequency=5000, duty_cycle=65000)
+'''
 
-i2c = busio.I2C(board.SCL, board.SDA)
 sensor = adafruit_bno055.BNO055_I2C(i2c)
 
-print('Initializing')
+def initialize_motor(motor):
+    print('Initializing to 2621')
+    motor.duty_cycle = 2621
+    motor.duty_cycle = 2621
+    sleep(5)
+    
+    print(f'Setting to {5242}')
+    motor.duty_cycle = 5242
+    motor.duty_cycle = 5242
+    sleep(5)
+
+    print(f'Setting to {2621}')
+    motor.duty_cycle = 2621
+    motor.duty_cycle = 2621
+    sleep(5)
+    
+#initialize_motor(right_fan)
+#initialize_motor(left_fan)
+initialize_motor(bottom)
+#bottom.duty_cycle = 4000
 sleep(5)
-l_bottom.duty_cycle = 3932.1
-l_top.duty_cycle = 3932.1
+
+'''
+print('Initializing to 2621')
+right_fan.duty_cycle = 2621
+left_fan.duty_cycle = 2621
+#sleep(5)
+print(f'Setting to {5242}')
+right_fan.duty_cycle = 5242
+left_fan.duty_cycle = 5242
+sleep(5)
+
+print(f'Setting to {2621}')
+right_fan.duty_cycle = 2621
+left_fan.duty_cycle = 2621
+sleep(5)
+'''
+
+#l_bottom.duty_cycle 0= 3932.1
+#l_top.duty_cycle = 3932.1
 
 # SERVO BREAKOUT
-
+'''
 servo_breakout = adafruit_pca9685.PCA9685(i2c)
 servo_breakout.frequency = int(40) # This is the commanded frequency, but it is no# Perform measurement:
 servo_breakout.channels[15].duty_cycle=int(1.5e-3*servo_breakout.frequency*65536.0)
 
-
 # Then let’s suppose you are commanding channel #0 (LEFT OUT):
 LEFT_OUT = servo_breakout.channels[0]
 desired_left_pulsewidth_seconds = 1.5e-3
-
+'''
 #PWMfreq = measure_servofreq_adafruit_pca9685.measure_servofreq(servo_breakout,15,board.
 # Assign the duty cycle using the measured PWM frequency to get an
 # accurate pulse width
@@ -132,9 +190,11 @@ while True:
     # print(f'[BNO055 CALIBRATION STATUS] - {sensor.calibrated}')
     # print(f'[ROTATION SIGNAL] - {rotation_signal}')
     #print(f'[GYRO] - {sensor.euler}')
-    
-    print(l_bottom.duty_cycle)
-    print(l_top.duty_cycle)
+    #right_fan.duty_cycle = 4000
+    #left_fan.duty_cycle = 4000
+    bottom.duty_cycle = 4000 
+    print(f'Right fan: {right_fan.duty_cycle}')
+    print(f'Left fan: {left_fan.duty_cycle}')
     # Check whether the BNO055 is calibrated
     # and turn on the LED on D13 as appopriate
 
