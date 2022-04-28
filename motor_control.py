@@ -17,7 +17,10 @@ class PIDController():
         self.first_loop = True
     
     def timestep(self, measurement, dt):
-        error = ((measurement - self.setpoint + 360 + 180) % 360  - 180) #measurement - self.setpoint
+        try:
+            error = ((measurement - self.setpoint + 360 + 180) % 360  - 180) #measurement - self.setpoint
+        except:
+            error = self.prev_error
         self.integrated_error += error * dt
         if self.first_loop == True:
             delta_error = 0
@@ -29,7 +32,7 @@ class PIDController():
 
         return self.kp * error + self.ki * self.integrated_error + self.kd * delta_error
 
-def set_motor_speed(motor_pwm, value):
+def set_motor_speed(motor_pwm, value, single_direction = False):
     '''
     Assuming a pulse width of 25 ms
     Assuming 1ms (full reverse)
@@ -40,11 +43,17 @@ def set_motor_speed(motor_pwm, value):
     Neutral Duty Cycle = 3932.1
     Max Duty Cycle = 5292.8
     '''
-
-    duty_cycle = 3932.1 + value * 1311.1
+    if single_direction:
+        duty_cycle = int(2621 + value * 2670)
+    else:
+        duty_cycle = int(3792 + value * 1311.1)
+        
     motor_pwm.duty_cycle = duty_cycle
 
-def get_motor_speed(motor_pwm):
-    value = (motor_pwm.duty_cycle - 3932.1)/1311.1
+def get_motor_speed(motor_pwm, single_direction = False):
+    if single_direction:
+        value = (motor_pwm.duty_cycle - 2621)/2670
+    else:
+        value = (motor_pwm.duty_cycle - 3932.1)/1311.1
 
     return value
