@@ -95,10 +95,15 @@ def initialize_reversing_motor(motor):
 
 initialize_motors([top, bottom])
 initialize_reversing_motors([right_fan, left_fan])
-
+'''
 kp = 0.0001
 ki = 0
 kd = 0.001
+'''
+
+kp = 0.01
+ki = 0
+kd = 0.01
 
 first_loop = True
 
@@ -124,7 +129,7 @@ while True:
     dt = end_time-start_time
     pid_signal = direction_PID.timestep(angle_measurement, dt = dt)
 
-    des_motor_spd = min(0.01, pid_signal)
+    des_motor_spd = np.sign(pid_signal) * min(0.3, abs(pid_signal))
 
     print(f'[PID SIGNAL]         -     {pid_signal}')
     print(f'[ANGLE SETPOINT]     -     {angle_setpoint}')
@@ -153,7 +158,7 @@ while True:
     #left_fan.duty_cycle = 4000
     
     #print(f'Right fan: {round(get_motor_speed(right_fan),2)}, {right_fan.duty_cycle}')
-    #print(f'Left fan: {round(get_motor_speed(left_fan),2)}, {left_fan.duty_cycle}')
+    print(f'Left fan: {round(get_motor_speed(left_fan),2)}, {left_fan.duty_cycle}')
 
     # Check whether the BNO055 is calibrated
     # and turn on the LED on D13 as appopriate
