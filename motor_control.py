@@ -54,6 +54,6 @@ def get_motor_speed(motor_pwm, single_direction = False):
     if single_direction:
         value = (motor_pwm.duty_cycle - 2621)/2670
     else:
-        value = (motor_pwm.duty_cycle - 3932.1)/1311.1
+        value = (motor_pwm.duty_cycle - 3792)/1311.1
 
     return value
