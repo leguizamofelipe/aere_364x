@@ -50,7 +50,7 @@ dynamic_model.enable_wind=False   # Set this to True to add a moment from the wi
 # You may also want variables for other values such as your chosen PWM frequency,
 
 i2c = busio.I2C(board.SCL, board.SDA)
-
+import pulse_commands
 import adafruit_pca9685
 import measure_servofreq_adafruit_pca9685
 
@@ -59,6 +59,9 @@ servo_breakout.frequency = int(40) # This is the commanded frequency, but it is 
 #Perform measurement:
 servo_breakout.channels[15].duty_cycle=int(1.5e-3*servo_breakout.frequency*65536.0)
 PWMfreq = measure_servofreq_adafruit_pca9685.measure_servofreq(servo_breakout,15,board.D26)# Then let’s suppose you are commanding channel #0 (LEFT OUT):
+
+rotation_command = pulseio.PulseIn(board.D5,maxlen=8,idle_state=False)
+forward_command = pulseio.PulseIn(board.D6,maxlen=8,idle_state=False)
 
 right_fan = servo_breakout.channels[10]
 left_fan = servo_breakout.channels[9]
@@ -111,7 +114,9 @@ first_loop = True
 while True:
     start_time = time.time()
     
-    angle_setpoint = 20 #get_desired_angle(rotation_command)
+    (rotat,FWDus) = pulse_commands.get_pulse_commands([rotation_command,forward_command])
+
+    angle_setpoint = get_desired_angle(rotat)
     angle_measurement = sensor.euler[0]
 
     if first_loop:
