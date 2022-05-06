@@ -54,11 +54,13 @@ import pulse_commands
 import adafruit_pca9685
 import measure_servofreq_adafruit_pca9685
 
+sensor = adafruit_bno055.BNO055_I2C(i2c)
+
 servo_breakout = adafruit_pca9685.PCA9685(i2c)
 servo_breakout.frequency = int(40) # This is the commanded frequency, but it is no
 #Perform measurement:
 servo_breakout.channels[15].duty_cycle=int(1.5e-3*servo_breakout.frequency*65536.0)
-PWMfreq = measure_servofreq_adafruit_pca9685.measure_servofreq(servo_breakout,15,board.D26)# Then let’s suppose you are commanding channel #0 (LEFT OUT):
+pwm_freq = measure_servofreq_adafruit_pca9685.measure_servofreq(servo_breakout,15,board.D26)# Then let’s suppose you are commanding channel #0 (LEFT OUT):
 
 rotation_command = pulseio.PulseIn(board.D5,maxlen=8,idle_state=False)
 forward_command = pulseio.PulseIn(board.D6,maxlen=8,idle_state=False)
@@ -69,44 +71,52 @@ left_fan = servo_breakout.channels[9]
 bottom = servo_breakout.channels[11]
 top = servo_breakout.channels[12]
 
-sensor = adafruit_bno055.BNO055_I2C(i2c)
+def initialize_motors(motors, pwm_frequency):
+    pulse_width = 1/pwm_frequency # Should be 0.025 s, but get the measurement
 
-def initialize_motors(motors):
+    low = int(0.001/pulse_width * 65536)
+    high = int(0.002/pulse_width * 65536)
+
     print('Initializing single direction motors')
     for motor in motors:
-        motor.duty_cycle = 2621
+        motor.duty_cycle = low
     sleep(3)
     
     for motor in motors:
-        motor.duty_cycle = 5242
+        motor.duty_cycle = high
     sleep(3)
     
     for motor in motors:
-        motor.duty_cycle = 2621
+        motor.duty_cycle = low
     sleep(3)
 
-def initialize_reversing_motors(motors):
+def initialize_reversing_motors(motors, pwm_frequency):
+    pulse_width = 1/pwm_frequency # Should be 0.025 s, but get the measurement
     print('Initializing reversing motors')
+    med = int(0.0015/pulse_width * 65536)
     for motor in motors:
-        motor.duty_cycle = 3800
+        motor.duty_cycle = med
     sleep(3)
     
-def initialize_reversing_motor(motor):
+def initialize_reversing_motor(motor, pwm_frequency):
+    pulse_width = 1/pwm_frequency # Should be 0.025 s, but get the measurement
     print('Initializing reversing motor')
-    motor.duty_cycle = 3800
+    med = int(0.0015/pulse_width * 65536)
+    motor.duty_cycle = med
     sleep(3)
 
-initialize_motors([top, bottom])
-initialize_reversing_motors([right_fan, left_fan])
+initialize_motors([top, bottom], pwm_freq)
+initialize_reversing_motors([right_fan, left_fan], pwm_freq)
+
 '''
-kp = 0.0001
+kp = 0.005
 ki = 0
-kd = 0.001
+kd = 0.2
 '''
 
-kp = 0.0000001
-ki = 0.0000001
-kd = 1
+kp = 0.005
+ki = 0
+kd = 0.3
 
 first_loop = True
 
@@ -114,9 +124,9 @@ first_loop = True
 while True:
     start_time = time.time()
     
-    (rotat,FWDus) = pulse_commands.get_pulse_commands([rotation_command,forward_command])
+    (angle_setpoint,thrust_setpoint) = pulse_commands.get_pulse_commands([rotation_command,forward_command])
 
-    angle_setpoint = get_desired_angle(rotat)
+    angle_setpoint = 20#get_desired_angle(rotat)
     angle_measurement = sensor.euler[0]
 
     if first_loop:
@@ -127,14 +137,13 @@ while True:
     if prev_angle != angle_setpoint:
         direction_PID.set_setpoint(angle_setpoint)
 
-    sleep(0.12)
     prev_angle = angle_setpoint
     end_time = time.time()
 
     dt = end_time-start_time
     pid_signal = direction_PID.timestep(angle_measurement, dt = dt)
 
-    des_motor_spd = np.sign(pid_signal) * min(0.2, abs(pid_signal))
+    des_motor_spd = np.sign(pid_signal) * min(0.15, abs(pid_signal))
 
     print(f'[PID SIGNAL]         -     {pid_signal}')
     print(f'[ANGLE SETPOINT]     -     {angle_setpoint}')
@@ -147,23 +156,29 @@ while True:
         sleep(1)
     '''
     
-    set_motor_speed(right_fan, des_motor_spd, single_direction=False)
-    set_motor_speed(left_fan, -des_motor_spd, single_direction=False)
+    set_motor_speed(right_fan, des_motor_spd, pwm_freq, single_direction=False)
+    set_motor_speed(left_fan, des_motor_spd, pwm_freq, single_direction=False)
     
-    set_motor_speed(bottom, -0.5, single_direction = True)
-    set_motor_speed(top, 0.5, single_direction = True)
-    
+    #set_motor_speed(bottom, -0.1, single_direction = True)
+    #set_motor_speed(top, 0.1, single_direction = True)
+    #sleep(0.12)
 
     #print(get_rotation_signal(rotation_command))
 
     # print(f'[BNO055 CALIBRATION STATUS] - {sensor.calibrated}')
     #print(f'[ROTATION SIGNAL] - {rotation_signal}')
     print(f'[GYRO] - {sensor.euler}')
+    print(f'[ROT CMD] - {angle_setpoint}')
     #right_fan.duty_cycle = 4000
     #left_fan.duty_cycle = 4000
     
-    print(f'Right fan: {round(get_motor_speed(right_fan),2)}, {right_fan.duty_cycle}')
-    print(f'Left fan: {round(get_motor_speed(left_fan),2)}, {left_fan.duty_cycle}')
+    print(f'Right fan: {round(get_motor_speed(right_fan, pwm_freq),4)}, {right_fan.duty_cycle}')
+    print(f'Left fan: {round(get_motor_speed(left_fan, pwm_freq),4)}, {left_fan.duty_cycle}')
+
+
+    #print(f'Right fan: {round(des_motor_spd,4)}')
+    #print(f'Left fan: {round(des_motor_spd,4)}')
+    #sleep(0.12)
 
     # Check whether the BNO055 is calibrated
     # and turn on the LED on D13 as appopriate

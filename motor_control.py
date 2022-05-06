@@ -32,28 +32,36 @@ class PIDController():
 
         return self.kp * error + self.ki * self.integrated_error + self.kd * delta_error
 
-def set_motor_speed(motor_pwm, value, single_direction = False):
+def set_motor_speed(motor_pwm, value, pwm_frequency, single_direction = False):
     '''
     Assuming a pulse width of 25 ms
     Assuming 1ms (full reverse)
     Assuming 1.5ms (neutral)
     Assuming 2ms (full forward)
-    
-    Min Duty Cycle = 2621
-    Neutral Duty Cycle = 3932.1
-    Max Duty Cycle = 5292.8
     '''
+    pulse_width = 1/pwm_frequency # Should be 0.025 s, but get the measurement
+
+    low = 0.001/pulse_width * 65536
+    high = 0.002/pulse_width * 65536
+
     if single_direction:
-        duty_cycle = int(2621 + value * 2670)
+        duty_cycle = int(low + value*(high-low))
     else:
-        duty_cycle = int(3792 + value * 1311.1)
+        slope = (high-low)/2
+        duty_cycle = int(low + (value+1) * slope)
         
     motor_pwm.duty_cycle = duty_cycle
 
-def get_motor_speed(motor_pwm, single_direction = False):
+def get_motor_speed(motor_pwm, pwm_freq, single_direction = False):
+    pulse_width = 1/pwm_freq
+    
+    low = 0.001/pulse_width * 65536
+    high = 0.002/pulse_width * 65536
+
     if single_direction:
-        value = (motor_pwm.duty_cycle - 2621)/2670
+        value = (motor_pwm.duty_cycle - low)/(high-low)
     else:
-        value = (motor_pwm.duty_cycle - 3792)/1311.1
+        slope = (high-low)/2
+        value = (motor_pwm.duty_cycle-low)/slope -1
 
     return value
