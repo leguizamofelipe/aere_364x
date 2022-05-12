@@ -5,9 +5,9 @@ def get_pulse_commands(pulsein_objs):
 
     all_complete = False
     while not all_complete:
-
         all_complete=True
         for i in range(num_inputs):
+            #print(len(pulsein_objs[i]));
             if len(pulsein_objs[i]) > 0:
                 new_us = pulsein_objs[i].popleft()
                 #print("got pulse[%d] new_us=%f" % (i,new_us))

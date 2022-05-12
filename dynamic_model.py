@@ -54,12 +54,12 @@ class dynamic_model_interactor(object):
         self.closing=False
         pass
 
-    def draw_arrows(self,orientation,world_vec_frontward):
+    def draw_arrows(self):
 
-        transformed_vec_frontward = vec_apply_rot(orientation,world_vec_frontward)
+        #transformed_vec_frontward = vec_apply_rot(orientation,world_vec_frontward)
         
         #print("transformed",transformed_vec_frontward)
-        
+        '''
         pl.subplot(*subplotparams_from_axessubplot(self.subfig_xy))
         if self.arrow_xy is not None:
             self.arrow_xy.remove()
@@ -78,7 +78,7 @@ class dynamic_model_interactor(object):
             self.arrow_xz.remove()
             pass
         self.arrow_xz = pl.arrow(-0.5*transformed_vec_frontward[0],-0.5*transformed_vec_frontward[2],transformed_vec_frontward[0],transformed_vec_frontward[2],width=0.2)
-
+        '''
         pass
 
     def interactor_update(self):
@@ -94,8 +94,9 @@ class dynamic_model_interactor(object):
 
         
         #orientation = self.get_quat()
+        orientation = 0
 
-        #self.draw_arrows(orientation,self.world_vec_frontward)
+        self.draw_arrows()
         '''
         if "LED" in digitalio.DigitalInOuts_by_pin:
             if digitalio.DigitalInOuts_by_pin["LED"].value:

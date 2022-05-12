@@ -16,19 +16,20 @@ class PIDController():
         self.prev_error = 0
         self.first_loop = True
     
-    def timestep(self, measurement, dt):
+    def timestep(self, measurement, dt, delta_error):
         try:
             error = ((measurement - self.setpoint + 360 + 180) % 360  - 180) #measurement - self.setpoint
         except:
             error = self.prev_error
         self.integrated_error += error * dt
-        if self.first_loop == True:
-            delta_error = 0
-        else:
-            delta_error = error - self.prev_error
 
         self.prev_error = error
         self.first_loop=False
+        '''
+        print(f'\nProp - {self.kp * error}')
+        print(f'Int - {self.ki * self.integrated_error}')
+        print(f'Der - {self.kd * delta_error}\n')
+        '''
 
         return self.kp * error + self.ki * self.integrated_error + self.kd * delta_error
 
